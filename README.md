@@ -1,5 +1,3 @@
-Perfecto. Aquí tienes una versión actualizada del README con el objetivo que indicas:
-
 # TFM proyecto: Predicción de salario, seniority y sistema RAG para ofertas de empleo
 
 Proyecto de Trabajo Fin de Máster orientado a la **recogida, limpieza y preparación de ofertas de empleo**, con tres objetivos aplicados de IA/NLP:
