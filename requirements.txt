@@ -1,11 +1,33 @@
+# Data & ML
+numpy
+pandas
+scikit-learn
+xgboost
+lightgbm
+joblib
+
+# Embeddings y vectorstore
+sentence-transformers   # solo necesario en local (sin HF_TOKEN)
+huggingface_hub         # para la Inference API en producción
+faiss-cpu
+
+# LLM, RAG y grafo
+langchain
+langchain-openai
+langchain-community
+langgraph
+openai
+
+# Interfaz
+streamlit
+
+# Descarga del vectorstore
+gdown
+
+# Utilidades
+python-dotenv
 ipython
 isort
 jupyterlab
 matplotlib
 notebook
-numpy
-pandas
-pip
-python-dotenv
-scikit-learn
-

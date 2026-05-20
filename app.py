@@ -1,8 +1,54 @@
 import sys
+import os
 
 sys.path.append(".")
 
 import streamlit as st
+
+FAISS_PATH = "vectorstore/ofertas_index/index.faiss"
+PKL_PATH = "vectorstore/ofertas_index/index.pkl"
+
+
+def _mostrar_descarga_vectorstore():
+    """Muestra animación de descarga si el vectorstore no está en disco."""
+    if os.path.exists(FAISS_PATH) and os.path.exists(PKL_PATH):
+        return  # ya está, no hace falta nada
+
+    from download_vectorstore import descargar_vectorstore, VECTORSTORE_DIR
+
+    st.info(
+        "⏳ **Primera ejecución detectada.** El índice de búsqueda (~220 MB) "
+        "no está en disco y se descargará ahora desde Google Drive. "
+        "Esto solo ocurre una vez.",
+        icon="📥",
+    )
+
+    with st.status("Descargando base de conocimiento...", expanded=True) as status:
+        st.write("📦 Descargando `index.faiss` (~212 MB)...")
+        os.makedirs(VECTORSTORE_DIR, exist_ok=True)
+
+        import gdown
+
+        gdown.download(
+            f"https://drive.google.com/uc?id={__import__('download_vectorstore').FAISS_FILE_ID}",
+            FAISS_PATH,
+            quiet=False,
+        )
+        st.write("✅ `index.faiss` descargado.")
+
+        st.write("📦 Descargando `index.pkl` (~10 MB)...")
+        gdown.download(
+            f"https://drive.google.com/uc?id={__import__('download_vectorstore').PKL_FILE_ID}",
+            PKL_PATH,
+            quiet=False,
+        )
+        st.write("✅ `index.pkl` descargado.")
+
+        status.update(
+            label="✅ Base de conocimiento lista. Recargando...", state="complete"
+        )
+
+    st.rerun()
 
 
 @st.cache_resource
@@ -125,8 +171,11 @@ CIUDADES = [
 ]
 
 st.set_page_config(page_title="Generador de Ofertas", layout="wide")
-st.title("🧠 Generador de Ofertas de Trabajo")
+st.title("Generador de Ofertas de Trabajo")
 st.caption("Genera una oferta realista y predice su salario y nivel de seniority")
+
+# Descarga el vectorstore si no está en disco (solo ocurre la primera vez)
+_mostrar_descarga_vectorstore()
 
 # ── BLOQUE 1: INPUTS ──────────────────────────────────────────────────────────
 st.subheader("📋 Perfil de la oferta")
@@ -164,7 +213,7 @@ if generar_clicked:
                 descripcion=descripcion,
             )
             st.write("✅ Oferta generada")
-            st.write("🧠 Calculando salario y seniority...")
+            st.write("Calculando salario y seniority...")
             resultado_pred = predictor.predecir(
                 titulo_habilidades=resultado_rag["titulo_habilidades"],
                 formacion=formacion,
@@ -199,12 +248,12 @@ if "resultado" in st.session_state:
         st.text(r["titulo_habilidades"])
 
     st.divider()
-    st.subheader("🎯 Predicciones")
+    st.subheader("Predicciones")
 
     col_sal, col_sen = st.columns(2)
 
     with col_sal:
-        st.markdown("**💰 Rango salarial predicho**")
+        st.markdown("**Rango salarial predicho**")
         st.markdown(
             f"<h2 style='color:#4CAF50;margin:0'>{RANGOS_SALARIO[salario_idx]}</h2>",
             unsafe_allow_html=True,
@@ -221,7 +270,7 @@ if "resultado" in st.session_state:
         )
 
     with col_sen:
-        st.markdown("**👤 Nivel de seniority**")
+        st.markdown("**Nivel de seniority**")
         colores = []
         for i in range(3):
             if i == seniority_idx:
