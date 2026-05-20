@@ -191,6 +191,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Secretos locales de Streamlit
+.streamlit/secrets.toml
+
 # Vectorstore (ficheros grandes, se descargan automáticamente desde Google Drive)
 vectorstore/ofertas_index/index.faiss
 vectorstore/ofertas_index/index.pkl

@@ -1,0 +1,14 @@
+# Dependencias adicionales para desarrollo LOCAL
+# Instalar junto con requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+# Embeddings locales (necesario si no tienes HF_TOKEN en .env)
+sentence-transformers
+
+# Notebooks y análisis
+jupyterlab
+notebook
+ipython
+isort
+matplotlib
+lightgbm
