@@ -5,9 +5,8 @@ Proyecto de Trabajo Fin de Máster que combina un pipeline completo de datos, mo
 **Autor:** Iván Benito Sánchez
 ## Propósito del repositorio
 
-Esta carpeta contiene los datos, notebooks y artefactos necesarios para **el entrenamiento** de los modelos de salario y seniority.
+Esta carpeta contiene los datos, notebooks y datos necesarios para **el entrenamiento** de los modelos de salario y seniority.
 
-El código y la configuración relacionados con el despliegue (app, RAG, vectorstore, grafo de ajuste, predictor de inferencia) se han movido al subdirectorio `hf-space/`.
 
 ### Contenido principal
 
@@ -17,14 +16,9 @@ TFM proyecto/
 ├── data/             # Datos raw / interim / processed utilizados en entrenamiento
 ├── artifacts/        # Artefactos generados por los notebooks (PCA, scalers, columnas)
 ├── models/           # Modelos entrenados (.joblib)
-├── build_vectorstore.py (Opcional) # Script one-time, no necesario para entrenamiento
 └── README.md
 ```
-        ├── nodes.py              # Nodos del grafo (generar, predecir, ajustar, verificar)
-        └── graph.py              # Construcción del StateGraph con LangGraph
-```
 
----
 
 ## Notebooks y flujo de entrenamiento
 
@@ -83,8 +77,3 @@ Ambos modelos se fuerzan a CPU en inferencia: `set_params(device='cpu', tree_met
 
 ---
 
-## Documentación adicional
-
-- Para el código de despliegue (app, RAG, vectorstore), consulta [hf-space/README.md](hf-space/README.md).
-
-Si quieres que deje aquí solo los notebooks y elimine por completo cualquier archivo de despliegue residual, dime y lo dejo listo (nota: algunos artefactos de gran tamaño como el índice FAISS pueden conservarse localmente si los necesitas). 
