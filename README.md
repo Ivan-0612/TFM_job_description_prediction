@@ -1,101 +1,158 @@
-# TFM proyecto: Predicción de salario, seniority y sistema RAG para ofertas de empleo
+# TFM: Predicción de salario y seniority + Generación de ofertas de trabajo con RAG
 
-Proyecto de Trabajo Fin de Máster orientado a la **recogida, limpieza y preparación de ofertas de empleo**, con tres objetivos aplicados de IA/NLP:
+Proyecto de Trabajo Fin de Máster que combina un pipeline completo de datos, modelos de Machine Learning y un sistema de Inteligencia Artificial generativa para el mercado laboral español.
 
-1. **Entrenar un modelo para predecir salario**.
-2. **Entrenar un modelo para predecir seniority**.
-3. **Construir un sistema RAG** con ofertas de empleo + LLM para **generar ofertas optimizadas**.
+**Autor:** Iván Benito Sánchez
 
-## 1. Objetivo del proyecto
-Este TFM busca desarrollar un pipeline completo de datos y modelado que permita:
+---
 
-1. Extraer y consolidar ofertas de empleo desde múltiples fuentes.
-2. Preparar datasets limpios y estructurados para tareas supervisadas.
-3. Entrenar y evaluar:
-   - Un modelo de **predicción de salario**.
-   - Un modelo de **clasificación/predicción de seniority**.
-4. Implementar un sistema **RAG (Retrieval-Augmented Generation)** que recupere ofertas relevantes y, apoyado por un LLM, proponga **versiones optimizadas de ofertas de trabajo**.
+## Descripción general
 
-## 2. Estructura del repositorio
-```text
-README.md
-requirements.txt
-data/
-  raw/         # Datos originales por fuente (CSV, parciales, etc.)
-  interim/     # Ficheros intermedios tras primeras transformaciones
-  processed/   # Datos finales limpios para análisis/modelado
-  external/    # Datos externos auxiliares
-docs/          # Documentación adicional
-models/        # Modelos entrenados y artefactos
-notebooks/     # Notebooks del flujo principal (00, 01, 02, 03...)
-references/    # Material de referencia
-reports/
-  figures/     # Gráficas y visualizaciones para informe/memoria
-src/
-  scraping_functions.py  # Funciones de scraping y utilidades
+El sistema permite a un usuario describir el perfil de una oferta de trabajo (sector, ciudad, tipo de empleo, formación requerida y descripción libre) y obtiene:
+
+1. **Una oferta de trabajo generada automáticamente** mediante RAG (Retrieval-Augmented Generation) con GPT-4o-mini, basándose en ofertas reales del mercado como contexto.
+2. **Predicción del rango salarial** (10 categorías) usando un modelo XGBoost entrenado con embeddings semánticos + variables estructurales.
+3. **Predicción del nivel de seniority** (Intern / Junior / Senior) usando otro modelo XGBoost con el mismo enfoque.
+4. **Bucle de ajuste inteligente** mediante LangGraph: si el salario o seniority predicho no coincide con el objetivo del usuario, el sistema reescribe la oferta iterativamente hasta acercarse al objetivo.
+
+---
+
+## Estructura del repositorio
+
+```
+TFM proyecto/
+├── app.py                        # Interfaz Streamlit
+├── build_vectorstore.py          # Script one-time para construir el índice FAISS
+├── requirements.txt
+├── .env                          # Variables de entorno (OPENAI_API_KEY)
+│
+├── data/
+│   ├── raw/                      # Datos originales de Adzuna, Apify/LinkedIn, Glassdoor
+│   ├── interim/
+│   │   ├── df_merged.csv         # Dataset consolidado y limpio (fuente del vectorstore)
+│   │   └── df_embeddings.csv     # Dataset con embeddings SBERT precalculados
+│   └── processed/
+│
+├── notebooks/
+│   ├── 01_get_data.ipynb         # Ingesta de datos (Adzuna API, Apify, Glassdoor scraping)
+│   ├── 02_build_data.ipynb       # Integración y consolidación de fuentes
+│   ├── 03_process_data_ai.ipynb  # Extracción de campos con IA (sector, ciudad, etc.)
+│   ├── 04_process_data.ipynb     # Limpieza, normalización y dataset final
+│   ├── 05_EDA.ipynb              # Análisis exploratorio de datos
+│   ├── 06_salary_model.ipynb     # Entrenamiento del modelo de predicción de salario
+│   └── 07_seniority_model.ipynb  # Entrenamiento del modelo de predicción de seniority
+│
+├── models/
+│   ├── salary/
+│   │   ├── set_2_XGBClassifier.joblib   # Modelo activo (sin tipo_empleo)
+│   │   ├── set_1_XGBClassifier.joblib
+│   │   ├── set_1_LGBMClassifier.joblib
+│   │   ├── set_2_LGBMClassifier.joblib
+│   │   ├── set_1_RandomForestClassifier.joblib
+│   │   └── set_2_RandomForestClassifier.joblib
+│   └── seniority/
+│       ├── set_1_XGBClassifier.joblib   # Modelo activo (con todas las features)
+│       └── set_1_LGBMClassifier.joblib
+│
+├── artifacts/
+│   ├── salary/
+│   │   ├── pca.joblib            # PCA entrenado sobre embeddings (87 componentes)
+│   │   ├── scaler.joblib         # MinMaxScaler sobre variables OHE+numéricas
+│   │   └── feature_columns.json  # Columnas exactas que espera el modelo
+│   └── seniority/
+│       ├── pca.joblib            # PCA entrenado sobre embeddings (144 componentes)
+│       ├── scaler.joblib
+│       └── feature_columns.json
+│
+├── vectorstore/
+│   └── ofertas_index/
+│       ├── index.faiss           # Índice FAISS con ~36.000 ofertas vectorizadas
+│       └── index.pkl             # Metadatos del docstore
+│
+└── src/
+    ├── predictor/
+    │   ├── embedder.py           # Wrapper SBERT (intfloat/multilingual-e5-large)
+    │   ├── preprocessor.py       # OHE + PCA + Scaler → vector de features
+    │   └── predictor.py          # Orquestador de inferencia (salario + seniority)
+    ├── rag/
+    │   ├── vectorstore.py        # Construcción y carga del índice FAISS
+    │   └── generator.py          # Cadena RAG + LLM para generación de ofertas
+    └── graph/
+        ├── state.py              # Definición del estado (TypedDict)
+        ├── nodes.py              # Nodos del grafo (generar, predecir, ajustar, verificar)
+        └── graph.py              # Construcción del StateGraph con LangGraph
 ```
 
-## 3. Fuentes de datos (resumen)
-Fuentes integradas en el proyecto:
+---
 
-- **Adzuna API**
-- **Apify / LinkedIn jobs scraper**
-- **Glassdoor** 
+## Arquitectura del sistema
 
-## 4. Flujo de trabajo (alto nivel)
-1. **01_get_data.ipynb**  
-   Ingesta y recopilación de ofertas.
-2. **02_build_data.ipynb**  
-   Integración de fuentes y construcción del dataset base.
-3. **03_process_data.ipynb**  
-   Limpieza, transformación y generación del dataset final para modelado.
-4. **Modelado ML**  
-   Entrenamiento y evaluación de modelos de salario y seniority.
-5. **Sistema RAG + LLM**  
-   Indexación/recuperación de ofertas y generación de ofertas optimizadas.
+El sistema tiene dos procesos completamente separados que se coordinan a través del grafo:
 
-## 5. Líneas de modelado
-### 5.1 Predicción de salario
-- Tipo de tarea: regresión.
-- Variable objetivo: salario (normalizado según disponibilidad/calidad de campo).
-- Salida esperada: estimación salarial para nuevas ofertas.
+**Proceso 1 — Generación RAG** (usa OpenAI `text-embedding-3-small` + GPT-4o-mini):
+- El usuario describe el perfil → se buscan 5 ofertas similares en FAISS → el LLM genera una oferta nueva con ese contexto.
+- Salida: `titulo_habilidades` (título + lista de habilidades) + `oferta_completa` (texto del anuncio).
 
-### 5.2 Predicción de seniority
-- Tipo de tarea: clasificación multiclase (p. ej. `intern`, `junior`, `senior`).
-- Variable objetivo: nivel de experiencia/seniority.
-- Salida esperada: nivel de seniority estimado para una oferta.
+**Proceso 2 — Predicción** (usa SBERT `intfloat/multilingual-e5-large` + XGBoost):
+- El `titulo_habilidades` se vectoriza con SBERT (1024 dims) → se reduce con PCA → se combina con variables OHE escaladas → XGBoost predice salario y seniority.
 
-### 5.3 RAG para generación de ofertas optimizadas
-- Base documental: corpus de ofertas limpias y estructuradas.
-- Recuperación: búsqueda de ofertas similares/relevantes.
-- Generación (LLM): redacción de una oferta optimizada usando contexto recuperado.
-- Resultado: borradores de ofertas más claros, completos y alineados con el mercado.
+**Proceso 3 — Ajuste LangGraph** (usa GPT-4o-mini):
+- Si el resultado no cumple los objetivos, el LLM reescribe el `titulo_habilidades` → se vuelve a predecir → bucle hasta 4 iteraciones.
+- Si hubo ajuste, se regenera el texto completo de la oferta con coherencia.
 
-## 6. Requisitos
-Dependencias principales en:
+Consulta [docs/arquitectura.md](docs/arquitectura.md) para el diagrama detallado.
 
-- requirements.txt
+---
 
-## 7. Cómo ejecutar (versión básica)
-1. Clonar el repositorio.
-2. Crear entorno virtual (recomendado).
-3. Instalar dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Ejecutar notebooks en orden:
-   - `00_pruebas.ipynb` (opcional)
-   - `01_get_data.ipynb`
-   - `02_build_data.ipynb`
-   - `03_process_data.ipynb`
-5. Ejecutar scripts/notebooks de modelado 
 
-## 8. Resultados esperados
-- Dataset consolidado y limpio para tareas de ML/NLP.
-- Modelo de predicción de salario con métricas de evaluación.
-- Modelo de predicción de seniority con métricas de clasificación.
-- Prototipo funcional de sistema RAG + LLM para generación de ofertas optimizadas.
+## Notebooks: flujo de datos
 
-## 10. Autoría
-Proyecto desarrollado como parte del **Trabajo Fin de Máster (TFM)**.  
-Autor: *Iván Benito Sánchez*  
+| Notebook | Descripción |
+|---|---|
+| `01_get_data` | Descarga datos de Adzuna API, scraping de Glassdoor por ciudad/puesto, descarga de Apify/LinkedIn |
+| `02_build_data` | Unifica las tres fuentes, normaliza columnas y genera el dataset base |
+| `03_process_data_ai` | Usa un LLM para extraer sector, ciudad, tipo de empleo y formación de las descripciones crudas |
+| `04_process_data` | Limpieza final, categorización de salarios en rangos, generación de `df_merged.csv` |
+| `05_EDA` | Análisis exploratorio: distribuciones, correlaciones, calidad de datos |
+| `06_salary_model` | Embeddings SBERT → PCA → XGBoost para clasificación salarial. Guarda artefactos en `artifacts/salary/` |
+| `07_seniority_model` | Mismo pipeline para predicción de seniority. Guarda artefactos en `artifacts/seniority/` |
+
+---
+
+## Modelos
+
+### Predicción de salario
+
+- **Tarea:** clasificación multiclase (10 rangos salariales).
+- **Features:** embeddings SBERT reducidos con PCA (87 componentes) + OHE de formación, sector y ciudad, escalados con MinMaxScaler.
+- **Modelo activo:** `set_2_XGBClassifier` (sin `tipo_empleo`, que reduce ruido).
+- **Clases:** `<15.000`, `15.000-22.000`, `22.000-30.000`, `30.000-40.000`, `40.000-52.000`, `52.000-65.000`, `65.000-80.000`, `80.000-100.000`, `100.000-150.000`, `>150.000`.
+
+### Predicción de seniority
+
+- **Tarea:** clasificación multiclase (3 niveles).
+- **Features:** embeddings SBERT reducidos con PCA (144 componentes) + OHE de formación, sector, tipo_empleo, escalados con MinMaxScaler.
+- **Modelo activo:** `set_1_XGBClassifier` (con todas las features incluyendo `tipo_empleo`).
+- **Clases:** `Intern` (0), `Junior` (1), `Senior` (2).
+
+Ambos modelos se fuerzan a CPU en inferencia: `set_params(device='cpu', tree_method='hist')`.
+
+---
+
+## Fuentes de datos
+
+| Fuente | Descripción |
+|---|---|
+| **Adzuna API** | Ofertas de empleo vía API REST, cubriendo múltiples sectores |
+| **Apify / LinkedIn** | Scraping de LinkedIn Jobs por nivel de seniority (entry, associate, mid, director, internship) |
+| **Glassdoor** | Scraping por ciudad (54 ciudades españolas) y categoría de puesto (15 categorías) |
+
+---
+
+## Documentación adicional
+
+- [docs/arquitectura.md](docs/arquitectura.md) — Diagrama de arquitectura y flujo de datos.
+- [docs/pipeline_inferencia.md](docs/pipeline_inferencia.md) — Pipeline de predicción en detalle.
+- [docs/rag_generacion.md](docs/rag_generacion.md) — Sistema RAG: vectorstore y generación.
+- [docs/grafo_ajuste.md](docs/grafo_ajuste.md) — Grafo LangGraph y bucle de ajuste.
+- [docs/instalacion_uso.md](docs/instalacion_uso.md) — Guía completa de instalación y uso.

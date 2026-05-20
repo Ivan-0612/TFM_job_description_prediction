@@ -1,3 +1,4 @@
+*.faiss
 # Data
 /data/raw/AdzunaAPI.csv
 
