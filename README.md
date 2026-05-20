@@ -3,106 +3,40 @@
 Proyecto de Trabajo Fin de Máster que combina un pipeline completo de datos, modelos de Machine Learning y un sistema de Inteligencia Artificial generativa para el mercado laboral español.
 
 **Autor:** Iván Benito Sánchez
+## Propósito del repositorio
 
----
+Esta carpeta contiene los datos, notebooks y artefactos necesarios para **el entrenamiento** de los modelos de salario y seniority.
 
-## Descripción general
+El código y la configuración relacionados con el despliegue (app, RAG, vectorstore, grafo de ajuste, predictor de inferencia) se han movido al subdirectorio `hf-space/`.
 
-El sistema permite a un usuario describir el perfil de una oferta de trabajo (sector, ciudad, tipo de empleo, formación requerida y descripción libre) y obtiene:
+### Contenido principal
 
-1. **Una oferta de trabajo generada automáticamente** mediante RAG (Retrieval-Augmented Generation) con GPT-4o-mini, basándose en ofertas reales del mercado como contexto.
-2. **Predicción del rango salarial** (10 categorías) usando un modelo XGBoost entrenado con embeddings semánticos + variables estructurales.
-3. **Predicción del nivel de seniority** (Intern / Junior / Senior) usando otro modelo XGBoost con el mismo enfoque.
-4. **Bucle de ajuste inteligente** mediante LangGraph: si el salario o seniority predicho no coincide con el objetivo del usuario, el sistema reescribe la oferta iterativamente hasta acercarse al objetivo.
-
----
-
-## Estructura del repositorio
-
-```
+```text
 TFM proyecto/
-├── app.py                        # Interfaz Streamlit
-├── build_vectorstore.py          # Script one-time para construir el índice FAISS
-├── requirements.txt
-├── .env                          # Variables de entorno (OPENAI_API_KEY)
-│
-├── data/
-│   ├── raw/                      # Datos originales de Adzuna, Apify/LinkedIn, Glassdoor
-│   ├── interim/
-│   │   ├── df_merged.csv         # Dataset consolidado y limpio (fuente del vectorstore)
-│   │   └── df_embeddings.csv     # Dataset con embeddings SBERT precalculados
-│   └── processed/
-│
-├── notebooks/
-│   ├── 01_get_data.ipynb         # Ingesta de datos (Adzuna API, Apify, Glassdoor scraping)
-│   ├── 02_build_data.ipynb       # Integración y consolidación de fuentes
-│   ├── 03_process_data_ai.ipynb  # Extracción de campos con IA (sector, ciudad, etc.)
-│   ├── 04_process_data.ipynb     # Limpieza, normalización y dataset final
-│   ├── 05_EDA.ipynb              # Análisis exploratorio de datos
-│   ├── 06_salary_model.ipynb     # Entrenamiento del modelo de predicción de salario
-│   └── 07_seniority_model.ipynb  # Entrenamiento del modelo de predicción de seniority
-│
-├── models/
-│   ├── salary/
-│   │   ├── set_2_XGBClassifier.joblib   # Modelo activo (sin tipo_empleo)
-│   │   ├── set_1_XGBClassifier.joblib
-│   │   ├── set_1_LGBMClassifier.joblib
-│   │   ├── set_2_LGBMClassifier.joblib
-│   │   ├── set_1_RandomForestClassifier.joblib
-│   │   └── set_2_RandomForestClassifier.joblib
-│   └── seniority/
-│       ├── set_1_XGBClassifier.joblib   # Modelo activo (con todas las features)
-│       └── set_1_LGBMClassifier.joblib
-│
-├── artifacts/
-│   ├── salary/
-│   │   ├── pca.joblib            # PCA entrenado sobre embeddings (87 componentes)
-│   │   ├── scaler.joblib         # MinMaxScaler sobre variables OHE+numéricas
-│   │   └── feature_columns.json  # Columnas exactas que espera el modelo
-│   └── seniority/
-│       ├── pca.joblib            # PCA entrenado sobre embeddings (144 componentes)
-│       ├── scaler.joblib
-│       └── feature_columns.json
-│
-├── vectorstore/
-│   └── ofertas_index/
-│       ├── index.faiss           # Índice FAISS con ~36.000 ofertas vectorizadas
-│       └── index.pkl             # Metadatos del docstore
-│
-└── src/
-    ├── predictor/
-    │   ├── embedder.py           # Wrapper SBERT (intfloat/multilingual-e5-large)
-    │   ├── preprocessor.py       # OHE + PCA + Scaler → vector de features
-    │   └── predictor.py          # Orquestador de inferencia (salario + seniority)
-    ├── rag/
-    │   ├── vectorstore.py        # Construcción y carga del índice FAISS
-    │   └── generator.py          # Cadena RAG + LLM para generación de ofertas
-    └── graph/
-        ├── state.py              # Definición del estado (TypedDict)
+├── notebooks/        # Notebooks para ingestión, procesado y entrenamiento
+├── data/             # Datos raw / interim / processed utilizados en entrenamiento
+├── artifacts/        # Artefactos generados por los notebooks (PCA, scalers, columnas)
+├── models/           # Modelos entrenados (.joblib)
+├── build_vectorstore.py (Opcional) # Script one-time, no necesario para entrenamiento
+└── README.md
+```
         ├── nodes.py              # Nodos del grafo (generar, predecir, ajustar, verificar)
         └── graph.py              # Construcción del StateGraph con LangGraph
 ```
 
 ---
 
-## Arquitectura del sistema
+## Notebooks y flujo de entrenamiento
 
-El sistema tiene dos procesos completamente separados que se coordinan a través del grafo:
+Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, procesarlo y entrenar los modelos. Ejecuta los notebooks en el siguiente orden para reproducir un entrenamiento completo:
 
-**Proceso 1 — Generación RAG** (usa OpenAI `text-embedding-3-small` + GPT-4o-mini):
-- El usuario describe el perfil → se buscan 5 ofertas similares en FAISS → el LLM genera una oferta nueva con ese contexto.
-- Salida: `titulo_habilidades` (título + lista de habilidades) + `oferta_completa` (texto del anuncio).
-
-**Proceso 2 — Predicción** (usa SBERT `intfloat/multilingual-e5-large` + XGBoost):
-- El `titulo_habilidades` se vectoriza con SBERT (1024 dims) → se reduce con PCA → se combina con variables OHE escaladas → XGBoost predice salario y seniority.
-
-**Proceso 3 — Ajuste LangGraph** (usa GPT-4o-mini):
-- Si el resultado no cumple los objetivos, el LLM reescribe el `titulo_habilidades` → se vuelve a predecir → bucle hasta 4 iteraciones.
-- Si hubo ajuste, se regenera el texto completo de la oferta con coherencia.
-
-Consulta [docs/arquitectura.md](docs/arquitectura.md) para el diagrama detallado.
-
----
+1. `01_get_data.ipynb`
+2. `02_build_data.ipynb`
+3. `03_process_data_ai.ipynb`
+4. `04_process_data.ipynb`
+5. `05_EDA.ipynb` (opcional)
+6. `06_salary_model.ipynb`
+7. `07_seniority_model.ipynb`
 
 
 ## Notebooks: flujo de datos
@@ -151,8 +85,6 @@ Ambos modelos se fuerzan a CPU en inferencia: `set_params(device='cpu', tree_met
 
 ## Documentación adicional
 
-- [docs/arquitectura.md](docs/arquitectura.md) — Diagrama de arquitectura y flujo de datos.
-- [docs/pipeline_inferencia.md](docs/pipeline_inferencia.md) — Pipeline de predicción en detalle.
-- [docs/rag_generacion.md](docs/rag_generacion.md) — Sistema RAG: vectorstore y generación.
-- [docs/grafo_ajuste.md](docs/grafo_ajuste.md) — Grafo LangGraph y bucle de ajuste.
-- [docs/instalacion_uso.md](docs/instalacion_uso.md) — Guía completa de instalación y uso.
+- Para el código de despliegue (app, RAG, vectorstore), consulta [hf-space/README.md](hf-space/README.md).
+
+Si quieres que deje aquí solo los notebooks y elimine por completo cualquier archivo de despliegue residual, dime y lo dejo listo (nota: algunos artefactos de gran tamaño como el índice FAISS pueden conservarse localmente si los necesitas). 

@@ -1,1 +1,0 @@
-# Este fichero ya no se usa. Ver requirements.txt (producción) y requirements-dev.txt (local).
