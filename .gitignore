@@ -190,3 +190,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+vectorstore/ofertas_index/index.faiss
