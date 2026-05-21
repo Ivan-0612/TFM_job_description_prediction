@@ -36,7 +36,7 @@ Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, proc
 2. `02_build_data.ipynb`
 3. `03_process_data_ai.ipynb`
 4. `04_process_data.ipynb`
-5. `05_EDA.ipynb` (opcional)
+5. `05_EDA.ipynb` 
 6. `06_salary_model.ipynb`
 7. `07_seniority_model.ipynb`
 
