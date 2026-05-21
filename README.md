@@ -3,6 +3,14 @@
 Proyecto de Trabajo Fin de Máster que combina un pipeline completo de datos, modelos de Machine Learning y un sistema de Inteligencia Artificial generativa para el mercado laboral español.
 
 **Autor:** Iván Benito Sánchez
+## Demo en producción
+
+La aplicación está desplegada en Hugging Face Spaces:
+
+🔗 [https://huggingface.co/spaces/ivan1212a/tfm-generador-ofertas](https://huggingface.co/spaces/ivan1212a/tfm-generador-ofertas)
+
+---
+
 ## Propósito del repositorio
 
 Esta carpeta contiene los datos, notebooks y datos necesarios para **el entrenamiento** de los modelos de salario y seniority.
