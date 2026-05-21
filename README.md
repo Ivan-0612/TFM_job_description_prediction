@@ -71,8 +71,6 @@ Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, proc
 - **Modelo activo:** `set_1_XGBClassifier` (con todas las features incluyendo `tipo_empleo`).
 - **Clases:** `Intern` (0), `Junior` (1), `Senior` (2).
 
-Ambos modelos se fuerzan a CPU en inferencia: `set_params(device='cpu', tree_method='hist')`.
-
 ---
 
 ## Fuentes de datos
