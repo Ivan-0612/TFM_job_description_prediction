@@ -1,9 +1,9 @@
 # TFM: Predicción de salario y seniority + Generación de ofertas de trabajo con RAG
 
-Proyecto de Trabajo Fin de Máster que combina un pipeline completo de datos, modelos de Machine Learning y un sistema de Inteligencia Artificial generativa para el mercado laboral español.
+Proyecto de Trabajo Fin de Máster que contiene un trabajo de Data Science: recogida de datos, procesado y limpieza, modelos de Machine Learning y un sistema de Inteligencia Artificial generativa para el mercado laboral español.
 
 **Autor:** Iván Benito Sánchez
-## Demo en producción
+## Demostración / Caso de uso
 
 La aplicación está desplegada en Hugging Face Spaces:
 
@@ -50,7 +50,7 @@ Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, proc
 | `03_process_data_ai` | Usa un LLM para extraer sector, ciudad, tipo de empleo y formación de las descripciones crudas |
 | `04_process_data` | Limpieza final, categorización de salarios en rangos, generación de `df_merged.csv` |
 | `05_EDA` | Análisis exploratorio: distribuciones, correlaciones, calidad de datos |
-| `06_salary_model` | Embeddings SBERT → PCA → XGBoost para clasificación salarial. Guarda artefactos en `artifacts/salary/` |
+| `06_salary_model` | Embeddings SBERT → PCA → XGBoost para clasificación salarial|
 | `07_seniority_model` | Mismo pipeline para predicción de seniority. Guarda artefactos en `artifacts/seniority/` |
 
 ---
@@ -60,15 +60,15 @@ Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, proc
 ### Predicción de salario
 
 - **Tarea:** clasificación multiclase (10 rangos salariales).
-- **Features:** embeddings SBERT reducidos con PCA (87 componentes) + OHE de formación, sector y ciudad, escalados con MinMaxScaler.
-- **Modelo activo:** `set_2_XGBClassifier` (sin `tipo_empleo`, que reduce ruido).
-- **Clases:** `<15.000`, `15.000-22.000`, `22.000-30.000`, `30.000-40.000`, `40.000-52.000`, `52.000-65.000`, `65.000-80.000`, `80.000-100.000`, `100.000-150.000`, `>150.000`.
+- **Features:** embeddings SBERT reducidos con PCA + OHE de formación, sector y ciudad, escalados con MinMaxScaler.
+- **Modelo activo:** `XGBClassifier` .
+- **Clases:** `<15.000`, `15.000-22.000`, `22.000-30.000`, `30.000-40.000`, `40.000-65.000`, `65.000-80.000`, `80.000-100.000`, `>100.000`.
 
 ### Predicción de seniority
 
 - **Tarea:** clasificación multiclase (3 niveles).
-- **Features:** embeddings SBERT reducidos con PCA (144 componentes) + OHE de formación, sector, tipo_empleo, escalados con MinMaxScaler.
-- **Modelo activo:** `set_1_XGBClassifier` (con todas las features incluyendo `tipo_empleo`).
+- **Features:** embeddings SBERT reducidos con PCA + OHE de formación, sector, tipo_empleo, escalados con MinMaxScaler.
+- **Modelo activo:** `XGBClassifier`.
 - **Clases:** `Intern` (0), `Junior` (1), `Senior` (2).
 
 ---
@@ -78,7 +78,6 @@ Los notebooks en `notebooks/` cubren todo el flujo para generar el dataset, proc
 | Fuente | Descripción |
 |---|---|
 | **Adzuna API** | Ofertas de empleo vía API REST, cubriendo múltiples sectores |
-| **Apify / LinkedIn** | Scraping de LinkedIn Jobs por nivel de seniority (entry, associate, mid, director, internship) |
 | **Glassdoor** | Scraping por ciudad (54 ciudades españolas) y categoría de puesto (15 categorías) |
 
 ---
